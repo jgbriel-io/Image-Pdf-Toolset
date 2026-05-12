@@ -1,88 +1,111 @@
-# image-tools
+# Image & PDF Toolset
 
-CLI standalone para otimização de imagens. Não instalar dentro de projetos Next.js — usar de fora.
+A local toolkit for processing images and PDFs — available as both a **CLI** and a **web UI**.
+
+## Features
+
+### 🖼 Image
+| Operation | Description |
+|-----------|-------------|
+| `compress` | Convert PNG/JPG → WebP or AVIF |
+| `resize` | Resize with fit modes (inside, cover/crop, contain, fill) |
+| `rotate` | Rotate by angle or auto-orient via EXIF |
+| `grayscale` | Convert to black & white |
+| `watermark` | Overlay text with configurable position and opacity |
+| `strip-metadata` | Remove EXIF/GPS/ICC data |
+| `blur` | Generate base64 blur placeholders for `next/image` |
+| `report` | Analyze image sizes, dimensions and WebP savings estimate |
+
+### 📄 PDF
+| Operation | Description |
+|-----------|-------------|
+| `pdf-merge` | Merge multiple PDFs into one |
+| `pdf-split` | Split a PDF into one file per page (ZIP) |
+| `pdf-extract` | Extract specific pages into a new PDF |
+| `img-to-pdf` | Convert one or more images into a PDF |
+| `pdf-to-img` | Render PDF pages as PNG images (ZIP) |
 
 ## Setup
 
 ```bash
-cd D:\Projetos\image-tools
 npm install
 ```
 
-## Comandos
+## Web UI
+
+```bash
+npm start
+# → http://localhost:3000
+```
+
+Upload a file, pick an operation, download the result.
+
+## CLI
+
+```bash
+node index.mjs <command> <dir> [options]
+```
 
 ### compress
 
-Converte PNG/JPG → WebP ou AVIF.
-
 ```bash
-node index.mjs compress <dir> [opções]
+node index.mjs compress ./public/images
+node index.mjs compress ./public/images --format=avif --quality=75
+node index.mjs compress ./public/images --update-content=./src/content --delete-originals
 ```
 
-| Opção | Padrão | Descrição |
-|-------|--------|-----------|
-| `--format=webp\|avif` | `webp` | Formato de saída |
-| `--quality=82` | `82` | Qualidade (1-100) |
-| `--width=1920` | `1920` | Largura máxima (mantém proporção) |
-| `--update-content=<dir>` | — | Atualiza paths `.png→.webp` nos `.ts` do diretório |
-| `--delete-originals` | — | Deleta originais após converter |
-
-**Exemplos:**
-
-```bash
-# Converte tudo em public/projects para WebP
-node index.mjs compress D:\Projetos\meu-site\public\projects
-
-# Converte + atualiza content files + deleta originais
-node index.mjs compress D:\Projetos\meu-site\public\projects \
-  --update-content=D:\Projetos\meu-site\src\content\projects \
-  --delete-originals
-
-# Converte para AVIF com qualidade 75
-node index.mjs compress D:\Projetos\meu-site\public\projects --format=avif --quality=75
-```
-
----
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--format=webp\|avif` | `webp` | Output format |
+| `--quality=N` | `82` | Quality (1–100) |
+| `--width=N` | `1920` | Max width (preserves ratio) |
+| `--update-content=<dir>` | — | Update `.png→.webp` paths in `.ts` files |
+| `--delete-originals` | — | Delete originals after converting |
 
 ### blur
 
-Gera base64 blur placeholders para uso com `next/image`.
-
 ```bash
-node index.mjs blur <dir> [--output=blur-map.json]
+node index.mjs blur ./public/images
+node index.mjs blur ./public/images --output=blur-map.json
 ```
 
-Gera um `blur-map.json` com chave = path da imagem, valor = base64 tiny blur.
+Generates a `blur-map.json` for use with `next/image`:
 
-**Uso no Next.js:**
 ```tsx
 import blurMap from "@/blur-map.json";
 
 <Image
-  src="/projects/her-ecosystem/banner.webp"
-  blurDataURL={blurMap["/projects/her-ecosystem/banner.webp"]}
+  src="/images/banner.webp"
+  blurDataURL={blurMap["/images/banner.webp"]}
   placeholder="blur"
-  ...
 />
 ```
 
----
-
 ### report
 
-Lista todas as imagens com tamanho, dimensões e estimativa de economia.
-
 ```bash
-node index.mjs report <dir>
+node index.mjs report ./public/images
 ```
 
-Alerta imagens acima de 500KB e estima economia com conversão WebP.
+Lists all images with size, dimensions, and estimated WebP savings. Warns on files above 500KB.
 
----
+## Stack
 
-## Observações
+- **[sharp](https://sharp.pixelplumbing.com/)** — image processing
+- **[pdf-lib](https://pdf-lib.js.org/)** — PDF manipulation
+- **[pdfjs-dist](https://github.com/mozilla/pdf.js)** + **[@napi-rs/canvas](https://github.com/Brooooooklyn/canvas)** — PDF rendering to image (no native binaries required)
+- **Express** + **Multer** — web server
+- **JSZip** — ZIP output for multi-file results
 
-- WebP não suporta imagens maiores que 16383px — `--width=1920` previne o erro
-- AVIF tem compressão melhor que WebP mas encoding mais lento
-- Originais ficam intactos até usar `--delete-originals`
-- Não instalar `sharp` dentro de projetos Next.js com `output: 'export'` — causa conflito com Turbopack
+## Project Structure
+
+```
+src/
+├── core/   # Pure functions (buffer → buffer), shared by CLI and web
+├── cli/    # Directory adapters for CLI usage
+└── web/    # Express routes
+public/
+└── index.html
+index.mjs   # CLI entry point
+server.mjs  # Web entry point
+```
