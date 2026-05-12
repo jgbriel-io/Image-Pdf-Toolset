@@ -105,14 +105,14 @@ router.post("/strip-metadata", upload.array("images", 5), async (req, res) => {
 });
 
 // blur e report retornam JSON — tratamento separado
-router.post("/blur", upload.single("image"), async (req, res) => {
+router.post("/blur", upload.single("images"), async (req, res) => {
   try {
     const blurData = await blur(req.file.buffer);
     res.json({ blur: blurData, filename: req.file.originalname });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-router.post("/report", upload.single("image"), async (req, res) => {
+router.post("/report", upload.single("images"), async (req, res) => {
   try {
     const data = await report(req.file.buffer, { filename: req.file.originalname, size: req.file.size });
     res.json(data);
