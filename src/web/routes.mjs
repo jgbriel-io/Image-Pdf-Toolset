@@ -39,16 +39,72 @@ async function sendZip(res, files, filename) {
   res.send(zipBuffer);
 }
 
+/**
+ * Processa múltiplas imagens com uma função core.
+ * 1 arquivo → resposta direta. 2+ → ZIP.
+ */
+async function handleImages(req, res, fn, zipName) {
+  const files = req.files;
+  if (!files?.length) throw new Error("No image provided.");
+
+  const results = await Promise.all(
+    files.map(async (f) => {
+      const { buffer, format } = await fn(f.buffer);
+      const name = f.originalname.replace(/\.[^.]+$/, `.${format}`);
+      return { name, buffer, format };
+    })
+  );
+
+  if (results.length === 1) {
+    sendImage(res, results[0].buffer, results[0].format, zipName);
+  } else {
+    await sendZip(res, results, zipName);
+  }
+}
+
 // ── Imagem ────────────────────────────────────────────────────────────────────
 
-router.post("/compress", upload.single("image"), async (req, res) => {
+router.post("/compress", upload.array("images", 5), async (req, res) => {
   try {
     const { format = "webp", quality = "82", width = "1920" } = req.body;
-    const { buffer, format: fmt } = await compress(req.file.buffer, { format, quality, width });
-    sendImage(res, buffer, fmt, "compressed");
+    await handleImages(req, res, (buf) => compress(buf, { format, quality, width }), "compressed");
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+router.post("/resize", upload.array("images", 5), async (req, res) => {
+  try {
+    const { width, height, fit } = req.body;
+    await handleImages(req, res, (buf) => resize(buf, { width, height, fit }), "resized");
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.post("/rotate", upload.array("images", 5), async (req, res) => {
+  try {
+    const { angle, auto } = req.body;
+    await handleImages(req, res, (buf) => rotate(buf, { angle, auto: auto === "true" }), "rotated");
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.post("/grayscale", upload.array("images", 5), async (req, res) => {
+  try {
+    await handleImages(req, res, (buf) => grayscale(buf), "grayscale");
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.post("/watermark", upload.array("images", 5), async (req, res) => {
+  try {
+    const { text, opacity, position } = req.body;
+    await handleImages(req, res, (buf) => watermark(buf, { text, opacity, position }), "watermarked");
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.post("/strip-metadata", upload.array("images", 5), async (req, res) => {
+  try {
+    await handleImages(req, res, (buf) => stripMetadata(buf), "clean");
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// blur e report retornam JSON — tratamento separado
 router.post("/blur", upload.single("image"), async (req, res) => {
   try {
     const blurData = await blur(req.file.buffer);
@@ -63,57 +119,16 @@ router.post("/report", upload.single("image"), async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-router.post("/resize", upload.single("image"), async (req, res) => {
-  try {
-    const { width, height, fit } = req.body;
-    const { buffer, format } = await resize(req.file.buffer, { width, height, fit });
-    sendImage(res, buffer, format, "resized");
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-router.post("/strip-metadata", upload.single("image"), async (req, res) => {
-  try {
-    const { buffer, format } = await stripMetadata(req.file.buffer);
-    sendImage(res, buffer, format, "clean");
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-router.post("/rotate", upload.single("image"), async (req, res) => {
-  try {
-    const { angle, auto } = req.body;
-    const { buffer, format } = await rotate(req.file.buffer, { angle, auto: auto === "true" });
-    sendImage(res, buffer, format, "rotated");
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-router.post("/grayscale", upload.single("image"), async (req, res) => {
-  try {
-    const { buffer, format } = await grayscale(req.file.buffer);
-    sendImage(res, buffer, format, "grayscale");
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-router.post("/watermark", upload.single("image"), async (req, res) => {
-  try {
-    const { text, opacity, position } = req.body;
-    const { buffer, format } = await watermark(req.file.buffer, { text, opacity, position });
-    sendImage(res, buffer, format, "watermarked");
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
 // ── PDF ───────────────────────────────────────────────────────────────────────
 
-// Merge: múltiplos PDFs → um PDF
 router.post("/pdf-merge", upload.array("pdfs"), async (req, res) => {
   try {
-    if (!req.files?.length) throw new Error("Envie ao menos um PDF.");
-    const buffers = req.files.map((f) => f.buffer);
-    const result = await pdfMerge(buffers);
+    if (!req.files?.length) throw new Error("Send at least one PDF.");
+    const result = await pdfMerge(req.files.map((f) => f.buffer));
     sendPdf(res, result, "merged");
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// Split: um PDF → ZIP com uma página por arquivo
 router.post("/pdf-split", upload.single("pdf"), async (req, res) => {
   try {
     const pages = await pdfSplit(req.file.buffer);
@@ -121,34 +136,29 @@ router.post("/pdf-split", upload.single("pdf"), async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// Extract: páginas específicas → PDF
 router.post("/pdf-extract", upload.single("pdf"), async (req, res) => {
   try {
     const pages = String(req.body.pages ?? "").split(",").map(Number).filter(Boolean);
-    if (!pages.length) throw new Error("Informe as páginas (ex: 1,3,5).");
+    if (!pages.length) throw new Error("Specify pages (e.g. 1,3,5).");
     const result = await pdfExtract(req.file.buffer, pages);
     sendPdf(res, result, "extracted");
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// Img → PDF: uma ou mais imagens → PDF
 router.post("/img-to-pdf", upload.array("images"), async (req, res) => {
   try {
-    if (!req.files?.length) throw new Error("Envie ao menos uma imagem.");
-    const buffers = req.files.map((f) => f.buffer);
-    const result = await imgToPdf(buffers);
+    if (!req.files?.length) throw new Error("Send at least one image.");
+    const result = await imgToPdf(req.files.map((f) => f.buffer));
     sendPdf(res, result, "document");
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// PDF → Img: páginas do PDF → ZIP com PNGs
 router.post("/pdf-to-img", upload.single("pdf"), async (req, res) => {
   try {
     const pages = req.body.pages
       ? String(req.body.pages).split(",").map(Number).filter(Boolean)
       : undefined;
-    const scale = req.body.scale;
-    const imgs = await pdfToImg(req.file.buffer, { pages, scale });
+    const imgs = await pdfToImg(req.file.buffer, { pages, scale: req.body.scale });
     await sendZip(res, imgs.map((p) => ({ name: `page-${p.page}.png`, buffer: p.buffer })), "pages");
   } catch (e) { res.status(400).json({ error: e.message }); }
 });

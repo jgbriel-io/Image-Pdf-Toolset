@@ -225,19 +225,19 @@
 
   <script>
     const OP_META = {
-      compress:       { desc: "Convert PNG/JPG to WebP or AVIF. Reduces file size by up to 85% with minimal quality loss.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
-      resize:         { desc: "Resize an image to specific dimensions. Choose how it fits: crop, letterbox, stretch, or scale within bounds.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
-      rotate:         { desc: "Rotate an image by 90°, 180° or 270°. Or let it auto-correct based on EXIF orientation data.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
-      grayscale:      { desc: "Convert a color image to black & white.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
-      watermark:      { desc: "Overlay text on an image with configurable position and opacity. Useful for protecting content.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
-      "strip-metadata": { desc: "Remove all EXIF metadata from an image — including GPS location, camera model, and timestamps.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
-      blur:           { desc: "Generate a tiny base64 blur placeholder for use with next/image. Returns a JSON with the data URL.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
-      report:         { desc: "Analyze an image: file size, dimensions, format, and estimated savings if converted to WebP.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
-      "pdf-merge":    { desc: "Combine multiple PDF files into a single document, in the order they are uploaded.", label: "PDFs", hint: "PDF files", multi: true, pdf: true },
-      "pdf-split":    { desc: "Split a PDF into individual pages. Returns a ZIP archive with one PDF per page.", label: "PDF", hint: "PDF file", multi: false, pdf: true },
-      "pdf-extract":  { desc: "Extract specific pages from a PDF into a new document. Specify pages as comma-separated numbers.", label: "PDF", hint: "PDF file", multi: false, pdf: true },
-      "img-to-pdf":   { desc: "Convert one or more images into a PDF document. Each image becomes a page.", label: "Images", hint: "PNG, JPG, WebP, AVIF", multi: true, pdf: false },
-      "pdf-to-img":   { desc: "Render PDF pages as PNG images. Returns a ZIP archive. Optionally select specific pages.", label: "PDF", hint: "PDF file", multi: false, pdf: true },
+      compress:       { desc: "Convert PNG/JPG to WebP or AVIF. Reduces file size by up to 85% with minimal quality loss.", label: "Images", hint: "Up to 5 images — PNG, JPG, WebP, AVIF", multi: true, max: 5, pdf: false },
+      resize:         { desc: "Resize images to specific dimensions. Choose how they fit: crop, letterbox, stretch, or scale within bounds.", label: "Images", hint: "Up to 5 images — PNG, JPG, WebP, AVIF", multi: true, max: 5, pdf: false },
+      rotate:         { desc: "Rotate images by 90°, 180° or 270°. Or let it auto-correct based on EXIF orientation data.", label: "Images", hint: "Up to 5 images — PNG, JPG, WebP, AVIF", multi: true, max: 5, pdf: false },
+      grayscale:      { desc: "Convert color images to black & white.", label: "Images", hint: "Up to 5 images — PNG, JPG, WebP, AVIF", multi: true, max: 5, pdf: false },
+      watermark:      { desc: "Overlay text on images with configurable position and opacity. Useful for protecting content.", label: "Images", hint: "Up to 5 images — PNG, JPG, WebP, AVIF", multi: true, max: 5, pdf: false },
+      "strip-metadata": { desc: "Remove all EXIF metadata from images — including GPS location, camera model, and timestamps.", label: "Images", hint: "Up to 5 images — PNG, JPG, WebP, AVIF", multi: true, max: 5, pdf: false },
+      blur:           { desc: "Generate a tiny base64 blur placeholder for use with next/image. Returns a JSON with the data URL.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, max: 1, pdf: false },
+      report:         { desc: "Analyze an image: file size, dimensions, format, and estimated savings if converted to WebP.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, max: 1, pdf: false },
+      "pdf-merge":    { desc: "Combine multiple PDF files into a single document, in the order they are uploaded.", label: "PDFs", hint: "PDF files", multi: true, max: 20, pdf: true },
+      "pdf-split":    { desc: "Split a PDF into individual pages. Returns a ZIP archive with one PDF per page.", label: "PDF", hint: "PDF file", multi: false, max: 1, pdf: true },
+      "pdf-extract":  { desc: "Extract specific pages from a PDF into a new document. Specify pages as comma-separated numbers.", label: "PDF", hint: "PDF file", multi: false, max: 1, pdf: true },
+      "img-to-pdf":   { desc: "Convert one or more images into a PDF document. Each image becomes a page.", label: "Images", hint: "PNG, JPG, WebP, AVIF", multi: true, max: 20, pdf: false },
+      "pdf-to-img":   { desc: "Render PDF pages as PNG images. Returns a ZIP archive. Optionally select specific pages.", label: "PDF", hint: "PDF file", multi: false, max: 1, pdf: true },
     };
 
     let files = [];
@@ -304,6 +304,11 @@
 
     function setFiles(f) {
       if (!f.length) return;
+      const max = OP_META[op].max;
+      if (f.length > max) {
+        alert(`Maximum ${max} file${max > 1 ? "s" : ""} allowed for this operation.`);
+        return;
+      }
       files = f;
       const firstLine = dropZone.querySelector("div");
       firstLine.textContent = f.length === 1 ? f[0].name : `${f.length} files selected`;
@@ -332,7 +337,7 @@
       if (op === "pdf-merge") files.forEach(f => fd.append("pdfs", f));
       else if (op === "img-to-pdf") files.forEach(f => fd.append("images", f));
       else if (PDF_OPS.includes(op)) fd.append("pdf", files[0]);
-      else fd.append("image", files[0]);
+      else files.forEach(f => fd.append("images", f));
 
       if (op === "compress") {
         fd.append("format", document.getElementById("format").value);
