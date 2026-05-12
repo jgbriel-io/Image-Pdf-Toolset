@@ -3,114 +3,152 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>image-tools</title>
+  <title>Image & PDF Toolset</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
-    h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 1.5rem; color: #fff; letter-spacing: -0.02em; }
-    .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 1rem; }
-    label { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
-    .drop-zone { border: 2px dashed #333; border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; transition: border-color 0.2s; color: #555; font-size: 0.9rem; }
-    .drop-zone.over, .drop-zone:hover { border-color: #555; color: #aaa; }
+    body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1rem; }
+
+    h1 { font-size: 1.5rem; font-weight: 700; color: #fff; letter-spacing: -0.03em; }
+    .subtitle { font-size: 0.85rem; color: #555; margin-top: 0.25rem; margin-bottom: 2rem; }
+
+    .card { background: #141414; border: 1px solid #222; border-radius: 14px; padding: 1.75rem; width: 100%; max-width: 580px; display: flex; flex-direction: column; gap: 1.25rem; }
+
+    /* Category */
+    .cat-tabs { display: flex; gap: 0.5rem; }
+    .cat-tab { flex: 1; padding: 0.6rem; border: 1px solid #2a2a2a; border-radius: 8px; background: #111; color: #666; cursor: pointer; font-size: 0.85rem; text-align: center; transition: all 0.15s; }
+    .cat-tab:hover { border-color: #444; color: #aaa; }
+    .cat-tab.active { border-color: #4ade80; color: #4ade80; background: #0a1a0f; }
+    .cat-tab.pdf-cat.active { border-color: #60a5fa; color: #60a5fa; background: #080f1a; }
+
+    /* Op grid */
+    .op-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
+    .op-btn { padding: 0.5rem 0.25rem; border: 1px solid #2a2a2a; border-radius: 7px; background: #111; color: #666; cursor: pointer; font-size: 0.78rem; text-align: center; transition: all 0.15s; line-height: 1.3; }
+    .op-btn:hover { border-color: #444; color: #aaa; }
+    .op-btn.active { border-color: #4ade80; color: #4ade80; background: #0a1a0f; }
+    .op-btn.pdf-op.active { border-color: #60a5fa; color: #60a5fa; background: #080f1a; }
+    .op-btn .op-icon { font-size: 1.1rem; display: block; margin-bottom: 0.2rem; }
+
+    /* Op description */
+    .op-desc { font-size: 0.82rem; color: #666; background: #0f0f0f; border: 1px solid #1e1e1e; border-radius: 7px; padding: 0.6rem 0.85rem; line-height: 1.5; min-height: 2.5rem; }
+
+    /* Drop zone */
+    .drop-zone { border: 2px dashed #2a2a2a; border-radius: 9px; padding: 1.75rem; text-align: center; cursor: pointer; transition: all 0.2s; color: #444; font-size: 0.9rem; }
+    .drop-zone:hover, .drop-zone.over { border-color: #444; color: #888; }
     .drop-zone.has-file { border-color: #4ade80; color: #4ade80; }
-    .drop-zone.pdf { border-color: #60a5fa; }
     .drop-zone.pdf.has-file { border-color: #60a5fa; color: #60a5fa; }
-    select, input[type=number], input[type=text] { background: #111; border: 1px solid #333; border-radius: 6px; color: #e0e0e0; padding: 0.5rem 0.75rem; font-size: 0.9rem; width: 100%; }
+    .drop-zone .drop-hint { font-size: 0.75rem; color: #444; margin-top: 0.3rem; }
+
+    /* Fields */
+    label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 0.4rem; }
+    .tip { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: #222; color: #555; font-size: 0.65rem; cursor: help; position: relative; }
+    .tip:hover::after { content: attr(data-tip); position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: #1e1e1e; border: 1px solid #333; color: #ccc; font-size: 0.72rem; padding: 0.4rem 0.6rem; border-radius: 6px; white-space: nowrap; z-index: 10; pointer-events: none; text-transform: none; letter-spacing: 0; }
+    select, input[type=number], input[type=text] { background: #0f0f0f; border: 1px solid #2a2a2a; border-radius: 7px; color: #e0e0e0; padding: 0.5rem 0.75rem; font-size: 0.88rem; width: 100%; transition: border-color 0.15s; }
+    select:focus, input:focus { outline: none; border-color: #444; }
     .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     .field { display: flex; flex-direction: column; gap: 0.4rem; }
-    /* Category tabs */
-    .cat-tabs { display: flex; gap: 0.5rem; margin-bottom: 0.25rem; }
-    .cat-tab { flex: 1; padding: 0.5rem; border: 1px solid #333; border-radius: 6px; background: #111; color: #888; cursor: pointer; font-size: 0.85rem; text-align: center; transition: all 0.15s; }
-    .cat-tab.active { border-color: #4ade80; color: #4ade80; background: #0d1f14; }
-    .cat-tab.pdf-cat.active { border-color: #60a5fa; color: #60a5fa; background: #0d1525; }
-    /* Op tabs */
-    .tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-    .tab { padding: 0.4rem 0.75rem; border: 1px solid #333; border-radius: 6px; background: #111; color: #888; cursor: pointer; font-size: 0.8rem; text-align: center; transition: all 0.15s; white-space: nowrap; }
-    .tab.active { border-color: #4ade80; color: #4ade80; background: #0d1f14; }
-    .tab.pdf-tab.active { border-color: #60a5fa; color: #60a5fa; background: #0d1525; }
-    button[type=submit] { background: #4ade80; color: #000; border: none; border-radius: 8px; padding: 0.75rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
-    button[type=submit].pdf-btn { background: #60a5fa; }
-    button[type=submit]:hover { opacity: 0.85; }
-    button[type=submit]:disabled { opacity: 0.4; cursor: not-allowed; }
-    #result { display: none; background: #111; border: 1px solid #2a2a2a; border-radius: 8px; padding: 1rem; font-size: 0.85rem; line-height: 1.6; }
-    #result.error { border-color: #f87171; color: #f87171; }
-    #result.success { border-color: #4ade80; }
-    #result.success.pdf { border-color: #60a5fa; }
-    #result a { color: #4ade80; text-decoration: none; font-weight: 600; }
-    #result.pdf a { color: #60a5fa; }
-    #result a:hover { text-decoration: underline; }
     .opts { display: flex; flex-direction: column; gap: 0.75rem; }
     .hidden { display: none !important; }
-    pre { white-space: pre-wrap; word-break: break-all; font-size: 0.75rem; }
-    .hint { font-size: 0.78rem; color: #555; }
+
+    /* Submit */
+    button[type=submit] { background: #4ade80; color: #000; border: none; border-radius: 9px; padding: 0.8rem; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: opacity 0.15s; letter-spacing: -0.01em; }
+    button[type=submit].pdf-btn { background: #60a5fa; }
+    button[type=submit]:hover { opacity: 0.88; }
+    button[type=submit]:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* Result */
+    #result { display: none; border-radius: 9px; overflow: hidden; }
+    .result-inner { background: #0f0f0f; border: 1px solid #222; border-radius: 9px; padding: 1rem; font-size: 0.85rem; line-height: 1.6; }
+    .result-inner.error { border-color: #f87171; color: #f87171; }
+    .result-inner.success { border-color: #4ade80; }
+    .result-inner.success.pdf { border-color: #60a5fa; }
+    .result-inner a { color: #4ade80; text-decoration: none; font-weight: 600; }
+    .result-inner.pdf a { color: #60a5fa; }
+    .result-inner a:hover { text-decoration: underline; }
+    #preview { max-width: 100%; border-radius: 7px; margin-top: 0.75rem; display: none; border: 1px solid #222; }
+    pre { white-space: pre-wrap; word-break: break-all; font-size: 0.72rem; margin-top: 0.5rem; color: #888; }
+    .divider { border: none; border-top: 1px solid #1e1e1e; }
   </style>
 </head>
 <body>
-  <h1>🛠 image-tools</h1>
+  <h1>🛠 Image & PDF Toolset</h1>
+  <p class="subtitle">Process images and PDFs locally — no uploads to external servers.</p>
+
   <div class="card">
 
-    <!-- Categoria -->
+    <!-- Category -->
     <div class="field">
-      <label>Categoria</label>
+      <label>Category</label>
       <div class="cat-tabs">
-        <div class="cat-tab active" data-cat="img">🖼 Imagem</div>
+        <div class="cat-tab active" data-cat="img">🖼 Image</div>
         <div class="cat-tab pdf-cat" data-cat="pdf">📄 PDF</div>
       </div>
     </div>
 
-    <!-- Operações de imagem -->
+    <!-- Image ops -->
     <div id="img-ops" class="field">
-      <label>Operação</label>
-      <div class="tabs">
-        <div class="tab active" data-op="compress">Compress</div>
-        <div class="tab" data-op="resize">Resize</div>
-        <div class="tab" data-op="rotate">Rotate</div>
-        <div class="tab" data-op="grayscale">Grayscale</div>
-        <div class="tab" data-op="watermark">Watermark</div>
-        <div class="tab" data-op="strip-metadata">Strip EXIF</div>
-        <div class="tab" data-op="blur">Blur</div>
-        <div class="tab" data-op="report">Report</div>
+      <label>Operation</label>
+      <div class="op-grid">
+        <div class="op-btn active" data-op="compress"><span class="op-icon">⚡</span>Compress</div>
+        <div class="op-btn" data-op="resize"><span class="op-icon">↔️</span>Resize</div>
+        <div class="op-btn" data-op="rotate"><span class="op-icon">🔄</span>Rotate</div>
+        <div class="op-btn" data-op="grayscale"><span class="op-icon">🩶</span>Grayscale</div>
+        <div class="op-btn" data-op="watermark"><span class="op-icon">💧</span>Watermark</div>
+        <div class="op-btn" data-op="strip-metadata"><span class="op-icon">🔒</span>Strip EXIF</div>
+        <div class="op-btn" data-op="blur"><span class="op-icon">🌫️</span>Blur</div>
+        <div class="op-btn" data-op="report"><span class="op-icon">📊</span>Report</div>
       </div>
     </div>
 
-    <!-- Operações de PDF -->
+    <!-- PDF ops -->
     <div id="pdf-ops" class="field hidden">
-      <label>Operação</label>
-      <div class="tabs">
-        <div class="tab pdf-tab active" data-op="pdf-merge">Merge</div>
-        <div class="tab pdf-tab" data-op="pdf-split">Split</div>
-        <div class="tab pdf-tab" data-op="pdf-extract">Extract</div>
-        <div class="tab pdf-tab" data-op="img-to-pdf">Img → PDF</div>
-        <div class="tab pdf-tab" data-op="pdf-to-img">PDF → Img</div>
+      <label>Operation</label>
+      <div class="op-grid">
+        <div class="op-btn pdf-op active" data-op="pdf-merge"><span class="op-icon">🔗</span>Merge</div>
+        <div class="op-btn pdf-op" data-op="pdf-split"><span class="op-icon">✂️</span>Split</div>
+        <div class="op-btn pdf-op" data-op="pdf-extract"><span class="op-icon">📑</span>Extract</div>
+        <div class="op-btn pdf-op" data-op="img-to-pdf"><span class="op-icon">🖼→📄</span>Img→PDF</div>
+        <div class="op-btn pdf-op" data-op="pdf-to-img"><span class="op-icon">📄→🖼</span>PDF→Img</div>
       </div>
     </div>
+
+    <!-- Op description -->
+    <div class="op-desc" id="opDesc"></div>
 
     <!-- Drop zone -->
     <div class="field">
-      <label id="dropLabel">Imagem</label>
+      <label id="dropLabel">Image</label>
       <div class="drop-zone" id="dropZone">
-        Arraste ou clique para selecionar
+        <div>Drag & drop or click to select</div>
+        <div class="drop-hint" id="dropHint">PNG, JPG, WebP, AVIF</div>
         <input type="file" id="fileInput" accept="image/*" style="display:none" />
       </div>
     </div>
 
-    <!-- ── Opções de imagem ── -->
+    <!-- ── Image options ── -->
     <div class="opts" id="opts-compress">
       <div class="row">
-        <div class="field"><label>Formato</label>
+        <div class="field">
+          <label>Format</label>
           <select id="format"><option value="webp">WebP</option><option value="avif">AVIF</option></select>
         </div>
-        <div class="field"><label>Qualidade</label><input type="number" id="quality" value="82" min="1" max="100" /></div>
-        <div class="field"><label>Largura máx</label><input type="number" id="compressWidth" value="1920" min="1" /></div>
+        <div class="field">
+          <label>Quality <span class="tip" data-tip="1–100. 82 is a good balance.">?</span></label>
+          <input type="number" id="quality" value="82" min="1" max="100" />
+        </div>
+        <div class="field">
+          <label>Max width <span class="tip" data-tip="Larger images are scaled down. Smaller ones are untouched.">?</span></label>
+          <input type="number" id="compressWidth" value="1920" min="1" />
+        </div>
       </div>
     </div>
 
     <div class="opts hidden" id="opts-resize">
       <div class="row">
-        <div class="field"><label>Largura (px)</label><input type="number" id="resizeWidth" placeholder="ex: 800" min="1" /></div>
-        <div class="field"><label>Altura (px)</label><input type="number" id="resizeHeight" placeholder="ex: 600" min="1" /></div>
-        <div class="field"><label>Fit</label>
+        <div class="field"><label>Width (px)</label><input type="number" id="resizeWidth" placeholder="e.g. 800" min="1" /></div>
+        <div class="field"><label>Height (px)</label><input type="number" id="resizeHeight" placeholder="e.g. 600" min="1" /></div>
+        <div class="field">
+          <label>Fit <span class="tip" data-tip="inside: fit within bounds. cover: crop to fill. contain: letterbox. fill: stretch.">?</span></label>
           <select id="resizeFit">
             <option value="inside">inside</option>
             <option value="cover">cover (crop)</option>
@@ -123,35 +161,38 @@
 
     <div class="opts hidden" id="opts-rotate">
       <div class="row-2">
-        <div class="field"><label>Ângulo</label>
+        <div class="field"><label>Angle</label>
           <select id="rotateAngle"><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select>
         </div>
-        <div class="field"><label>Auto (EXIF)</label>
-          <select id="rotateAuto"><option value="false">Não</option><option value="true">Sim</option></select>
+        <div class="field">
+          <label>Auto <span class="tip" data-tip="Reads EXIF orientation and corrects it automatically. Ignores angle.">?</span></label>
+          <select id="rotateAuto"><option value="false">No</option><option value="true">Yes (EXIF)</option></select>
         </div>
       </div>
     </div>
 
     <div class="opts hidden" id="opts-watermark">
       <div class="row-2">
-        <div class="field"><label>Texto</label><input type="text" id="wmText" value="© meu site" /></div>
-        <div class="field"><label>Posição</label>
+        <div class="field"><label>Text</label><input type="text" id="wmText" value="© my site" /></div>
+        <div class="field"><label>Position</label>
           <select id="wmPosition">
-            <option value="bottom-right">Baixo direita</option>
-            <option value="bottom-left">Baixo esquerda</option>
-            <option value="top-right">Cima direita</option>
-            <option value="top-left">Cima esquerda</option>
-            <option value="center">Centro</option>
+            <option value="bottom-right">Bottom right</option>
+            <option value="bottom-left">Bottom left</option>
+            <option value="top-right">Top right</option>
+            <option value="top-left">Top left</option>
+            <option value="center">Center</option>
           </select>
         </div>
       </div>
-      <div class="field"><label>Opacidade (0–1)</label><input type="number" id="wmOpacity" value="0.5" min="0" max="1" step="0.1" /></div>
+      <div class="field">
+        <label>Opacity <span class="tip" data-tip="0 = invisible, 1 = fully opaque. 0.5 is a good default.">?</span></label>
+        <input type="number" id="wmOpacity" value="0.5" min="0" max="1" step="0.1" />
+      </div>
     </div>
 
-    <!-- ── Opções de PDF ── -->
     <div class="opts hidden" id="opts-pdf-extract">
       <div class="field">
-        <label>Páginas (ex: 1,3,5)</label>
+        <label>Pages <span class="tip" data-tip="Comma-separated page numbers, e.g. 1,3,5">?</span></label>
         <input type="text" id="extractPages" placeholder="1,2,3" />
       </div>
     </div>
@@ -159,25 +200,46 @@
     <div class="opts hidden" id="opts-pdf-to-img">
       <div class="row-2">
         <div class="field">
-          <label>Páginas (vazio = todas)</label>
-          <input type="text" id="pdfToImgPages" placeholder="1,2,3" />
+          <label>Pages <span class="tip" data-tip="Leave empty to convert all pages.">?</span></label>
+          <input type="text" id="pdfToImgPages" placeholder="empty = all" />
         </div>
         <div class="field">
-          <label>Escala (qualidade)</label>
+          <label>Scale <span class="tip" data-tip="Higher scale = better quality but larger files.">?</span></label>
           <select id="pdfToImgScale">
-            <option value="1">1x (rápido)</option>
-            <option value="2" selected>2x (padrão)</option>
-            <option value="3">3x (alta)</option>
+            <option value="1">1× fast</option>
+            <option value="2" selected>2× default</option>
+            <option value="3">3× high quality</option>
           </select>
         </div>
       </div>
     </div>
 
-    <button type="submit" id="submitBtn" disabled>Processar</button>
-    <div id="result"></div>
+    <button type="submit" id="submitBtn" disabled>Process</button>
+
+    <div id="result">
+      <div class="result-inner" id="resultInner"></div>
+      <img id="preview" alt="preview" />
+    </div>
+
   </div>
 
   <script>
+    const OP_META = {
+      compress:       { desc: "Convert PNG/JPG to WebP or AVIF. Reduces file size by up to 85% with minimal quality loss.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
+      resize:         { desc: "Resize an image to specific dimensions. Choose how it fits: crop, letterbox, stretch, or scale within bounds.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
+      rotate:         { desc: "Rotate an image by 90°, 180° or 270°. Or let it auto-correct based on EXIF orientation data.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
+      grayscale:      { desc: "Convert a color image to black & white.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
+      watermark:      { desc: "Overlay text on an image with configurable position and opacity. Useful for protecting content.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
+      "strip-metadata": { desc: "Remove all EXIF metadata from an image — including GPS location, camera model, and timestamps.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
+      blur:           { desc: "Generate a tiny base64 blur placeholder for use with next/image. Returns a JSON with the data URL.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
+      report:         { desc: "Analyze an image: file size, dimensions, format, and estimated savings if converted to WebP.", label: "Image", hint: "PNG, JPG, WebP, AVIF", multi: false, pdf: false },
+      "pdf-merge":    { desc: "Combine multiple PDF files into a single document, in the order they are uploaded.", label: "PDFs", hint: "PDF files", multi: true, pdf: true },
+      "pdf-split":    { desc: "Split a PDF into individual pages. Returns a ZIP archive with one PDF per page.", label: "PDF", hint: "PDF file", multi: false, pdf: true },
+      "pdf-extract":  { desc: "Extract specific pages from a PDF into a new document. Specify pages as comma-separated numbers.", label: "PDF", hint: "PDF file", multi: false, pdf: true },
+      "img-to-pdf":   { desc: "Convert one or more images into a PDF document. Each image becomes a page.", label: "Images", hint: "PNG, JPG, WebP, AVIF", multi: true, pdf: false },
+      "pdf-to-img":   { desc: "Render PDF pages as PNG images. Returns a ZIP archive. Optionally select specific pages.", label: "PDF", hint: "PDF file", multi: false, pdf: true },
+    };
+
     let files = [];
     let op = "compress";
     let cat = "img";
@@ -186,52 +248,50 @@
     const fileInput = document.getElementById("fileInput");
     const submitBtn = document.getElementById("submitBtn");
     const result = document.getElementById("result");
+    const resultInner = document.getElementById("resultInner");
+    const preview = document.getElementById("preview");
+    const opDesc = document.getElementById("opDesc");
     const dropLabel = document.getElementById("dropLabel");
+    const dropHint = document.getElementById("dropHint");
 
-    const PDF_OPS = ["pdf-merge", "pdf-split", "pdf-extract", "img-to-pdf", "pdf-to-img"];
-    const MULTI_OPS = ["pdf-merge", "img-to-pdf"]; // aceitam múltiplos arquivos
+    const PDF_OPS = ["pdf-merge", "pdf-split", "pdf-extract", "pdf-to-img"];
 
-    // Categoria
+    function applyOp(newOp) {
+      op = newOp;
+      const meta = OP_META[op];
+      opDesc.textContent = meta.desc;
+      dropLabel.textContent = meta.label;
+      dropHint.textContent = meta.hint;
+      fileInput.accept = meta.pdf ? "application/pdf" : "image/*";
+      fileInput.multiple = meta.multi;
+      dropZone.classList.toggle("pdf", PDF_OPS.includes(op));
+      submitBtn.classList.toggle("pdf-btn", PDF_OPS.includes(op) || op === "img-to-pdf");
+      document.querySelectorAll(".opts").forEach(o => o.classList.add("hidden"));
+      document.getElementById(`opts-${op}`)?.classList.remove("hidden");
+      resetFiles();
+      result.style.display = "none";
+    }
+
+    // Category tabs
     document.querySelectorAll(".cat-tab").forEach(tab => {
       tab.addEventListener("click", () => {
         document.querySelectorAll(".cat-tab").forEach(t => t.classList.remove("active"));
         tab.classList.add("active");
         cat = tab.dataset.cat;
-
         document.getElementById("img-ops").classList.toggle("hidden", cat !== "img");
         document.getElementById("pdf-ops").classList.toggle("hidden", cat !== "pdf");
-
-        // Seleciona primeira aba da categoria
-        const firstTab = document.querySelector(cat === "img" ? "#img-ops .tab" : "#pdf-ops .tab");
-        if (firstTab) firstTab.click();
-
-        resetFiles();
+        const firstBtn = document.querySelector(cat === "img" ? "#img-ops .op-btn" : "#pdf-ops .op-btn");
+        if (firstBtn) firstBtn.click();
       });
     });
 
-    // Operação
-    document.querySelectorAll(".tab").forEach(tab => {
-      tab.addEventListener("click", () => {
-        const parent = tab.closest(".tabs");
-        parent.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-        tab.classList.add("active");
-        op = tab.dataset.op;
-
-        document.querySelectorAll(".opts").forEach(o => o.classList.add("hidden"));
-        const optsEl = document.getElementById(`opts-${op}`);
-        if (optsEl) optsEl.classList.remove("hidden");
-
-        // Atualiza drop zone
-        const isPdf = PDF_OPS.includes(op);
-        const isMulti = MULTI_OPS.includes(op);
-        dropZone.classList.toggle("pdf", isPdf);
-        fileInput.accept = op === "img-to-pdf" ? "image/*" : isPdf ? "application/pdf" : "image/*";
-        fileInput.multiple = isMulti;
-        dropLabel.textContent = isPdf ? (isMulti ? "PDFs" : op === "img-to-pdf" ? "Imagens" : "PDF") : "Imagem";
-        submitBtn.classList.toggle("pdf-btn", isPdf);
-
-        resetFiles();
-        result.style.display = "none";
+    // Op buttons
+    document.querySelectorAll(".op-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const parent = btn.closest(".op-grid");
+        parent.querySelectorAll(".op-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        applyOp(btn.dataset.op);
       });
     });
 
@@ -239,17 +299,14 @@
     dropZone.addEventListener("click", () => fileInput.click());
     dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("over"); });
     dropZone.addEventListener("dragleave", () => dropZone.classList.remove("over"));
-    dropZone.addEventListener("drop", e => {
-      e.preventDefault();
-      dropZone.classList.remove("over");
-      setFiles([...e.dataTransfer.files]);
-    });
+    dropZone.addEventListener("drop", e => { e.preventDefault(); dropZone.classList.remove("over"); setFiles([...e.dataTransfer.files]); });
     fileInput.addEventListener("change", () => setFiles([...fileInput.files]));
 
     function setFiles(f) {
       if (!f.length) return;
       files = f;
-      dropZone.textContent = f.length === 1 ? f[0].name : `${f.length} arquivos selecionados`;
+      const firstLine = dropZone.querySelector("div");
+      firstLine.textContent = f.length === 1 ? f[0].name : `${f.length} files selected`;
       dropZone.classList.add("has-file");
       submitBtn.disabled = false;
     }
@@ -257,7 +314,8 @@
     function resetFiles() {
       files = [];
       fileInput.value = "";
-      dropZone.textContent = "Arraste ou clique para selecionar";
+      const firstLine = dropZone.querySelector("div");
+      if (firstLine) firstLine.textContent = "Drag & drop or click to select";
       dropZone.classList.remove("has-file");
       submitBtn.disabled = true;
     }
@@ -266,19 +324,16 @@
     submitBtn.addEventListener("click", async () => {
       if (!files.length) return;
       submitBtn.disabled = true;
-      submitBtn.textContent = "Processando...";
+      submitBtn.textContent = "Processing…";
       result.style.display = "none";
+      preview.style.display = "none";
 
       const fd = new FormData();
-      const isPdf = PDF_OPS.includes(op);
-
-      // Append files
       if (op === "pdf-merge") files.forEach(f => fd.append("pdfs", f));
       else if (op === "img-to-pdf") files.forEach(f => fd.append("images", f));
-      else if (isPdf) fd.append("pdf", files[0]);
+      else if (PDF_OPS.includes(op)) fd.append("pdf", files[0]);
       else fd.append("image", files[0]);
 
-      // Append options
       if (op === "compress") {
         fd.append("format", document.getElementById("format").value);
         fd.append("quality", document.getElementById("quality").value);
@@ -306,46 +361,54 @@
         const ct = res.headers.get("Content-Type") ?? "";
 
         if (!res.ok) {
-          const j = await res.json().catch(() => ({ error: "Erro desconhecido" }));
+          const j = await res.json().catch(() => ({ error: "Server error" }));
           throw new Error(j.error);
         }
 
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
+        const isPdfResult = PDF_OPS.includes(op) || op === "img-to-pdf";
 
         if (ct.startsWith("image/")) {
           const ext = ct.split("/")[1];
           const name = files[0].name.replace(/\.[^.]+$/, `.${ext}`);
-          result.className = "success";
-          result.innerHTML = `✓ Pronto — <a href="${url}" download="${name}">Baixar ${name}</a>`;
+          resultInner.className = "result-inner success";
+          resultInner.innerHTML = `✓ Done — <a href="${url}" download="${name}">Download ${name}</a>`;
+          preview.src = url;
+          preview.style.display = "block";
         } else if (ct === "application/pdf") {
-          result.className = "success pdf";
-          result.innerHTML = `✓ Pronto — <a href="${url}" download="resultado.pdf">Baixar PDF</a>`;
+          resultInner.className = "result-inner success pdf";
+          resultInner.innerHTML = `✓ Done — <a href="${url}" download="result.pdf">Download PDF</a>`;
         } else if (ct === "application/zip") {
-          result.className = "success pdf";
-          result.innerHTML = `✓ Pronto — <a href="${url}" download="resultado.zip">Baixar ZIP</a>`;
-        } else if (ct.includes("json")) {
+          resultInner.className = "result-inner success" + (isPdfResult ? " pdf" : "");
+          resultInner.innerHTML = `✓ Done — <a href="${url}" download="result.zip">Download ZIP</a>`;
+        } else {
           const json = JSON.parse(await blob.text());
           if (op === "blur") {
-            result.className = "success";
-            result.innerHTML = `✓ Blur placeholder gerado<br><pre>${json.blur}</pre>`;
+            resultInner.className = "result-inner success";
+            resultInner.innerHTML = `✓ Blur placeholder generated<pre>${json.blur}</pre>`;
           } else if (op === "report") {
             const { filename, size, width, height, format, estimatedWebp } = json;
-            result.className = "success";
-            result.innerHTML = `<strong>${filename}</strong><br>
-              Tamanho: ${(size/1e3).toFixed(0)}KB | ${width}×${height} | ${format}<br>
-              Estimativa WebP: ~${(estimatedWebp/1e3).toFixed(0)}KB (economia ~85%)`;
+            const saved = (((size - estimatedWebp) / size) * 100).toFixed(0);
+            resultInner.className = "result-inner success";
+            resultInner.innerHTML = `
+              <strong>${filename}</strong><br>
+              ${(size/1e3).toFixed(0)} KB &nbsp;·&nbsp; ${width}×${height} &nbsp;·&nbsp; ${format.toUpperCase()}<br>
+              WebP estimate: ~${(estimatedWebp/1e3).toFixed(0)} KB &nbsp;<span style="color:#4ade80">(-${saved}%)</span>`;
           }
         }
       } catch (e) {
-        result.className = "error";
-        result.textContent = `Erro: ${e.message}`;
+        resultInner.className = "result-inner error";
+        resultInner.textContent = `Error: ${e.message}`;
       }
 
       result.style.display = "block";
       submitBtn.disabled = false;
-      submitBtn.textContent = "Processar";
+      submitBtn.textContent = "Process";
     });
+
+    // Init
+    applyOp("compress");
   </script>
 </body>
 </html>
